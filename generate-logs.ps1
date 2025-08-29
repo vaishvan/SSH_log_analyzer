@@ -83,7 +83,7 @@ function Invoke-AttackPattern {
 Write-Host "SSH Log Generator Started" -ForegroundColor Yellow
 Write-Host "Output file: $outputFile" -ForegroundColor Cyan
 Write-Host "Delay between events: $delaySeconds seconds" -ForegroundColor Cyan
-Write-Host "Press Ctrl+C to stop`n" -ForegroundColor Yellow
+Write-Host "Press Ctrl+C to stop" -ForegroundColor Yellow
 
 # init log file
 if (Test-Path $outputFile) {
@@ -106,13 +106,13 @@ do {
         $patternName = $attackPatterns.Keys | Get-Random
         $pattern = $attackPatterns[$patternName]
         
-        Write-Host "`n[ATTACK SIMULATION] Starting $patternName attack..." -ForegroundColor Magenta
+        Write-Host "[ATTACK SIMULATION] Starting $patternName attack..." -ForegroundColor Magenta
         Invoke-AttackPattern -pattern $pattern -logFile $outputFile
-        Write-Host "[ATTACK SIMULATION] $patternName completed`n" -ForegroundColor Magenta
+        Write-Host "[ATTACK SIMULATION] $patternName completed" -ForegroundColor Magenta
     }
     
     Start-Sleep -Seconds $delaySeconds
     
 } while ($continuous -or $iteration -lt 50)  # run 50 iterations if not continuous
 
-Write-Host "`nLog generation completed." -ForegroundColor Green
+Write-Host "Log generation completed." -ForegroundColor Green

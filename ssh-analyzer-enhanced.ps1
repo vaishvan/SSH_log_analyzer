@@ -180,7 +180,7 @@ function Block-IPAddress {
                 reason = $reason
                 ruleName = $ruleName
             }
-            Write-Alert "🚫 BLOCKED IP $ipAddr via Windows Firewall" "HIGH" $ipAddr
+            Write-Alert " BLOCKED IP $ipAddr via Windows Firewall" "HIGH" $ipAddr
             Write-Alert "   Rule: $ruleName" "HIGH"
             Write-Alert "   Reason: $reason" "HIGH"
         } else {
@@ -245,7 +245,8 @@ function Find-DictAttack {
     param([string]$ipAddr, [array]$attempts)
     
     $dictUsers = $attackSignatures.dictionary_attack.usernames
-    $matchedUsers = $attempts | Where-Object { $dictUsers -contains $_.username } | Select-Object -ExpandProperty username -Unique
+    $validAttempts = $attempts | Where-Object { $_ -and $_.PSObject.Properties['username'] -and $_.username }
+    $matchedUsers = $validAttempts | Where-Object { $dictUsers -contains $_.username } | ForEach-Object { $_.username } | Sort-Object -Unique
     
     if ($matchedUsers.Count -ge 3) {
         Write-Alert "dictionary attack from $ipAddr - users: $($matchedUsers -join ', ')" "HIGH" $ipAddr
@@ -282,7 +283,7 @@ function Update-AttackTracking {
     # check threat intelligence first
     $threatInfo = Get-ThreatIntel -ipAddr $ipAddr
     if ($threatInfo -and $threatInfo.isMalicious) {
-        Write-Alert "🔥 KNOWN THREAT DETECTED!" "CRITICAL" $ipAddr
+        Write-Alert " KNOWN THREAT DETECTED!" "CRITICAL" $ipAddr
         Write-Alert "   IP: $ipAddr" "CRITICAL"
         Write-Alert "   Sources: $($threatInfo.sources -join ', ')" "CRITICAL"
         Write-Alert "   Confidence: $($threatInfo.confidence)%" "CRITICAL"
@@ -316,7 +317,7 @@ function Update-AttackTracking {
     $tracking.lastSeen = $currentTime
     $tracking.totalAttempts++
     
-    if ($logEntry.username -notin $tracking.uniqueUsers) {
+    if ($logEntry.username -and $logEntry.username -notin $tracking.uniqueUsers) {
         $tracking.uniqueUsers += $logEntry.username
     }
     
@@ -374,7 +375,7 @@ function New-BruteForceAlert {
                elseif ($attemptCount -gt 5) { "MEDIUM" }
                else { "LOW" }
     
-    Write-Alert "🚨 brute-force attack detected!" $severity $ipAddress
+    Write-Alert " brute-force attack detected!" $severity $ipAddress
     Write-Alert "   source: $ipAddress" $severity
     Write-Alert "   attempts: $attemptCount in $timeWindowMinutes min" $severity
     Write-Alert "   total: $($tracking.totalAttempts)" $severity
@@ -382,7 +383,7 @@ function New-BruteForceAlert {
     
     # show threat intel if available
     if ($tracking.threatInfo -and $tracking.threatInfo.isMalicious) {
-        Write-Alert "   ⚠️ known threat: $($tracking.threatInfo.sources -join ', ')" $severity
+        Write-Alert "    known threat: $($tracking.threatInfo.sources -join ', ')" $severity
     }
     
     # show attempted usernames
@@ -399,15 +400,15 @@ function New-BruteForceAlert {
     # recommendations
     switch ($severity) {
         "CRITICAL" { 
-            Write-Alert "   🔥 immediate action required!" $severity
-            Write-Alert "   ► check if ip is already blocked" $severity
-            Write-Alert "   ► review successful logins" $severity
+            Write-Alert "    immediate action required!" $severity
+            Write-Alert "   - check if ip is already blocked" $severity
+            Write-Alert "   - review successful logins" $severity
         }
         "HIGH" {
-            Write-Alert "   ⚠️ recommended: block ip $ipAddress" $severity
+            Write-Alert "    recommended: block ip $ipAddress" $severity
         }
         "MEDIUM" {
-            Write-Alert "   📋 monitor for escalation" $severity
+            Write-Alert "    monitor for escalation" $severity
         }
     }
     
@@ -426,7 +427,7 @@ function Start-LogMonitoring {
     if ($autoBlock) { Write-Alert "auto-block: enabled (windows firewall)" "INFO" }
     if ($threatIntel) { Write-Alert "threat intel: enabled" "INFO" }
     Write-Alert "started: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" "INFO"
-    Write-Alert "press ctrl+c to stop`n" "INFO"
+    Write-Alert "press ctrl+c to stop" "INFO"
     
     if (-not (Test-Path $logFile)) {
         Write-Alert "log file not found - create with generate-logs.ps1" "MEDIUM"
@@ -444,7 +445,7 @@ function Start-LogMonitoring {
                 # read new content only
                 $content = Get-Content $logFile -Raw
                 $newContent = $content.Substring($lastSize)
-                $newLines = $newContent -split "`n" | Where-Object { $_ -ne "" }
+                $newLines = $newContent -split "n" | Where-Object { $_ -ne "" }
                 
                 foreach ($line in $newLines) {
                     $lineCount++

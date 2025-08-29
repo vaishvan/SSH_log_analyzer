@@ -7,7 +7,7 @@ param(
 )
 
 # dashboard refresh rate
-$refreshSeconds = 10
+$refreshSeconds = 3
 
 function Get-AttackStatistics {
     param([string]$logPath)
